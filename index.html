@@ -550,39 +550,57 @@
       animation: pulse 0.5s 3;
     }
 
-    /* BOTÃO SAIR - POSICIONAMENTO CORRIGIDO E REDIMENSIONADO */
+    /* BOTÃO SAIR COMPLETAMENTE REDESENHADO */
     .exit-btn {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      padding: 8px 14px;
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      width: 40px;
+      height: 40px;
       background: linear-gradient(135deg, #ff5555, #cc0000);
       color: white;
       border: none;
-      border-radius: 8px;
+      border-radius: 50%;
       cursor: pointer;
-      z-index: 10;
+      z-index: 100;
       transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-weight: bold;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      box-shadow: 0 0 5px rgba(255, 85, 85, 0.5);
-      font-size: 0.9rem;
+      font-size: 1.2rem;
+      box-shadow: 0 0 8px rgba(255, 85, 85, 0.7);
     }
 
     .exit-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 0 10px #ff5555;
+      transform: scale(1.1);
+      box-shadow: 0 0 12px #ff5555;
     }
 
-    .exit-btn:active {
-      transform: translateY(0);
+    .exit-btn::after {
+      content: 'Sair da Sala';
+      position: absolute;
+      top: 50px;
+      right: 0;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
     }
 
-    /* HEADER COM ESPAÇO PARA O BOTÃO */
+    .exit-btn:hover::after {
+      opacity: 1;
+    }
+
+    /* HEADER COM ESPAÇO ADEQUADO */
     .screen-header {
       position: relative;
-      padding-top: 45px;
+      padding-top: 20px;
       margin-bottom: 20px;
     }
     
@@ -653,7 +671,7 @@
     }
 
     .sound-toggle {
-      position: absolute;
+      position: fixed;
       top: 15px;
       left: 15px;
       background: rgba(255, 215, 0, 0.1);
@@ -665,7 +683,7 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      z-index: 10;
+      z-index: 100;
       transition: all 0.3s ease;
     }
 
@@ -738,16 +756,17 @@
         font-size: 0.8rem;
       }
       
-      /* Botão de sair em dispositivos móveis */
+      /* Ajustes para mobile */
       .exit-btn {
-        top: 15px;
-        right: 15px;
-        padding: 7px 10px;
-        font-size: 0.8rem;
+        top: 10px;
+        right: 10px;
+        width: 35px;
+        height: 35px;
+        font-size: 1rem;
       }
       
       .screen-header {
-        padding-top: 40px;
+        padding-top: 15px;
       }
     }
 
@@ -783,6 +802,9 @@
     <i>🔊</i>
   </div>
   
+  <!-- Botão SAIR com novo design (ícone X) -->
+  <button class="exit-btn hidden" id="exitBtn">✕</button>
+  
   <div class="container">
     <!-- Tela de Login -->
     <div id="loginScreen">
@@ -806,8 +828,6 @@
       <div class="gi-assistant">
         Dica da Gi: Crie uma sala ou entre com o código compartilhado pelo host!
       </div>
-      
-      <button class="exit-btn hidden" id="exitLoginBtn">Sair</button>
     </div>
 
     <!-- Lobby -->
@@ -835,8 +855,6 @@
       <div class="gi-assistant">
         Dica da Gi: O jogo começa quando o host clicar em "Iniciar Jogo"!
       </div>
-      
-      <button class="exit-btn" id="exitLobbyBtn">Sair</button>
     </div>
 
     <!-- Jogo -->
@@ -903,8 +921,6 @@
       <div class="gi-assistant" id="gameTip">
         Dica da Gi: Escreva palavras que comecem com a letra sorteada!
       </div>
-      
-      <button class="exit-btn" id="exitGameBtn">Sair</button>
     </div>
 
     <!-- Tela de Vencedor -->
@@ -927,8 +943,6 @@
       <div class="gi-assistant">
         Dica da Gi: Clique em "Jogar Novamente" para uma nova partida!
       </div>
-      
-      <button class="exit-btn" id="exitWinnerBtn">Sair</button>
     </div>
   </div>
 
@@ -1033,10 +1047,7 @@
       finalScores: document.getElementById('finalScores'),
       playAgainBtn: document.getElementById('playAgainBtn'),
       soundToggle: document.getElementById('soundToggle'),
-      exitLoginBtn: document.getElementById('exitLoginBtn'),
-      exitLobbyBtn: document.getElementById('exitLobbyBtn'),
-      exitGameBtn: document.getElementById('exitGameBtn'),
-      exitWinnerBtn: document.getElementById('exitWinnerBtn')
+      exitBtn: document.getElementById('exitBtn')
     };
 
     // Event Listeners
@@ -1048,10 +1059,7 @@
     elements.submitAnswersBtn.addEventListener('click', submitAnswers);
     elements.playAgainBtn.addEventListener('click', playAgain);
     elements.soundToggle.addEventListener('click', toggleSound);
-    elements.exitLoginBtn.addEventListener('click', leaveRoom);
-    elements.exitLobbyBtn.addEventListener('click', leaveRoom);
-    elements.exitGameBtn.addEventListener('click', leaveRoom);
-    elements.exitWinnerBtn.addEventListener('click', leaveRoom);
+    elements.exitBtn.addEventListener('click', leaveRoom);
     
     // Adiciona listener para habilitar/desabilitar botões conforme preenchimento
     elements.nameInput.addEventListener('input', updateButtonStates);
@@ -1225,12 +1233,13 @@
       elements.lobbyScreen.classList.remove('hidden');
       elements.gameScreen.classList.add('hidden');
       elements.winnerScreen.classList.add('hidden');
+      elements.exitBtn.classList.remove('hidden');
       
       elements.roomCodeDisplay.textContent = gameState.roomId;
       
-      // CORREÇÃO: Usar a URL atual para o link compartilhado
-      const currentUrl = window.location.href.split('?')[0];
-      const roomLink = `${currentUrl}?room=${gameState.roomId}`;
+      // CORREÇÃO: Geração de link dinâmica
+      const baseUrl = window.location.href.split('?')[0];
+      const roomLink = `${baseUrl}?room=${gameState.roomId}`;
       elements.roomLinkInput.value = roomLink;
       
       elements.startGameBtn.classList.toggle('hidden', !gameState.isHost);
@@ -1583,14 +1592,10 @@
       elements.lobbyScreen.classList.add('hidden');
       elements.gameScreen.classList.add('hidden');
       elements.winnerScreen.classList.add('hidden');
+      elements.exitBtn.classList.add('hidden');
       
-      // Esconde os botões de sair das outras telas
-      elements.exitLobbyBtn.classList.add('hidden');
-      elements.exitGameBtn.classList.add('hidden');
-      elements.exitWinnerBtn.classList.add('hidden');
-      
-      // Mostra o botão de sair na tela de login apenas se estiver em uma sala
-      elements.exitLoginBtn.classList.add('hidden');
+      // Limpa parâmetros da URL
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
 
     // Funções Auxiliares
@@ -1709,17 +1714,7 @@
           <div class="gi-assistant">
             Dica da Gi: Digite seu nome e clique em "Entrar na Sala" para participar!
           </div>
-          
-          <button class="exit-btn" id="exitLoginBtn">Sair</button>
         `;
-        
-        // Atualiza referência ao botão de sair
-        elements.exitLoginBtn = document.getElementById('exitLoginBtn');
-        elements.exitLoginBtn.addEventListener('click', function() {
-          // Remove o parâmetro da URL e recarrega
-          window.history.replaceState({}, document.title, window.location.pathname);
-          location.reload();
-        });
         
         // Adiciona evento ao novo botão
         const joinBtn = document.getElementById('joinFromLinkBtn');
@@ -1736,9 +1731,6 @@
         setTimeout(() => {
           document.getElementById('nameInput').focus();
         }, 100);
-      } else {
-        // Para o fluxo normal, atualiza os listeners dos botões de sair
-        elements.exitLoginBtn.addEventListener('click', leaveRoom);
       }
       
       // Função para entrar via link compartilhado
