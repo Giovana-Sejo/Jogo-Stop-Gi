@@ -835,7 +835,7 @@
   <!-- Overlay de carregamento -->
   <div class="loading-overlay hidden" id="loadingOverlay">
     <div class="loading-spinner"></div>
-    <p>Conectando à sala...</p>
+    <p id="loadingText">Conectando à sala...</p>
   </div>
   
   <div class="container">
@@ -1081,7 +1081,8 @@
       playAgainBtn: document.getElementById('playAgainBtn'),
       soundToggle: document.getElementById('soundToggle'),
       exitBtn: document.getElementById('exitBtn'),
-      loadingOverlay: document.getElementById('loadingOverlay')
+      loadingOverlay: document.getElementById('loadingOverlay'),
+      loadingText: document.getElementById('loadingText')
     };
 
     // Event Listeners
@@ -1128,26 +1129,37 @@
       gameState.scores = {};
       gameState.scores[name] = 0;
       
-      // Cria sala no Firebase
-      gameState.roomRef = database.ref('rooms/' + gameState.roomId);
-      gameState.roomRef.set({
-        host: name,
-        players: { [name]: true },
-        status: 'waiting',
-        currentLetter: '',
-        round: 1,
-        scores: gameState.scores,
-        createdAt: firebase.database.ServerValue.TIMESTAMP
-      }).then(() => {
-        // Configura listeners
-        setupRoomListeners();
+      // Verifica se o Firebase está inicializado
+      if (!firebase.apps.length) {
         hideLoading();
-        showLobby();
-        createParticles();
-      }).catch(error => {
+        return showError('Erro de conexão com o servidor');
+      }
+      
+      // Cria sala no Firebase
+      try {
+        gameState.roomRef = database.ref('rooms/' + gameState.roomId);
+        gameState.roomRef.set({
+          host: name,
+          players: { [name]: true },
+          status: 'waiting',
+          currentLetter: '',
+          round: 1,
+          scores: gameState.scores,
+          createdAt: firebase.database.ServerValue.TIMESTAMP
+        }).then(() => {
+          console.log("Sala criada com sucesso no Firebase");
+          // Configura listeners
+          setupRoomListeners();
+        }).catch(error => {
+          console.error("Erro ao criar sala no Firebase:", error);
+          hideLoading();
+          showError('Erro ao criar sala: ' + error.message);
+        });
+      } catch (error) {
+        console.error("Erro geral ao criar sala:", error);
         hideLoading();
         showError('Erro ao criar sala: ' + error.message);
-      });
+      }
     }
 
     function showJoinForm() {
@@ -1169,72 +1181,82 @@
       showLoading("Entrando na sala...");
       
       // Verifica se a sala existe
-      gameState.roomRef = database.ref('rooms/' + roomId);
-      gameState.roomRef.once('value').then(snapshot => {
-        if (!snapshot.exists()) {
+      try {
+        gameState.roomRef = database.ref('rooms/' + roomId);
+        gameState.roomRef.once('value').then(snapshot => {
+          if (!snapshot.exists()) {
+            hideLoading();
+            return showError('Sala não encontrada');
+          }
+          
+          const roomData = snapshot.val();
+          
+          // Verifica se o jogo já começou
+          if (roomData.status === 'playing') {
+            hideLoading();
+            return showError('O jogo já começou nesta sala');
+          }
+          
+          // Verifica se a sala está cheia
+          const players = Object.keys(roomData.players || {});
+          if (players.length >= gameState.gameSettings.maxPlayers) {
+            hideLoading();
+            return showError('A sala está cheia!');
+          }
+          
+          gameState.name = name;
+          gameState.roomId = roomId;
+          gameState.isHost = false;
+          
+          // Adiciona jogador à sala
+          gameState.roomRef.child('players/' + name).set(true);
+          
+          // Sincroniza estado do jogo
+          gameState.round = roomData.round || 1;
+          gameState.currentLetter = roomData.currentLetter || '';
+          gameState.scores = roomData.scores || {};
+          gameState.scores[name] = gameState.scores[name] || 0;
+          
+          // Atualiza scores no Firebase
+          gameState.roomRef.child('scores/' + name).set(gameState.scores[name]);
+          
+          // Configura listeners
+          setupRoomListeners();
+        }).catch(error => {
+          console.error("Erro ao verificar sala:", error);
           hideLoading();
-          return showError('Sala não encontrada');
-        }
-        
-        const roomData = snapshot.val();
-        
-        // Verifica se o jogo já começou
-        if (roomData.status === 'playing') {
-          hideLoading();
-          return showError('O jogo já começou nesta sala');
-        }
-        
-        // Verifica se a sala está cheia
-        const players = Object.keys(roomData.players || {});
-        if (players.length >= gameState.gameSettings.maxPlayers) {
-          hideLoading();
-          return showError('A sala está cheia!');
-        }
-        
-        gameState.name = name;
-        gameState.roomId = roomId;
-        gameState.isHost = false;
-        
-        // Adiciona jogador à sala
-        gameState.roomRef.child('players/' + name).set(true);
-        
-        // Sincroniza estado do jogo
-        gameState.round = roomData.round || 1;
-        gameState.currentLetter = roomData.currentLetter || '';
-        gameState.scores = roomData.scores || {};
-        gameState.scores[name] = gameState.scores[name] || 0;
-        
-        // Atualiza scores no Firebase
-        gameState.roomRef.child('scores/' + name).set(gameState.scores[name]);
-        
-        // Configura listeners
-        setupRoomListeners();
-        
-        hideLoading();
-        showLobby();
-        createParticles();
-      }).catch(error => {
+          showError('Erro ao entrar na sala: ' + error.message);
+        });
+      } catch (error) {
+        console.error("Erro geral ao entrar na sala:", error);
         hideLoading();
         showError('Erro ao entrar na sala: ' + error.message);
-      });
+      }
     }
 
     function setupRoomListeners() {
       const roomRef = database.ref('rooms/' + gameState.roomId);
       
-      // Adiciona timeout para conexão
+      // Adiciona timeout para conexão (aumentado para 20 segundos)
       const connectionTimeout = setTimeout(() => {
+        console.error("Timeout na conexão com a sala");
         hideLoading();
-        showError('Tempo excedido ao conectar com o servidor');
-      }, 10000);
+        showError('Tempo excedido ao conectar com o servidor. Tente novamente.');
+      }, 20000);
       
       // Atualiza lista de jogadores
       roomRef.child('players').on('value', snapshot => {
+        console.log("Evento de players recebido", snapshot.val());
         clearTimeout(connectionTimeout);
         const players = snapshot.val() || {};
         gameState.players = Object.keys(players);
         updatePlayerList();
         elements.playerCount.textContent = gameState.players.length;
+        
+        // Escondemos o loading e mostramos o lobby
+        hideLoading();
+        showLobby();
+        createParticles();
       });
       
       // Monitora status do jogo
@@ -1284,7 +1306,7 @@
       
       elements.roomCodeDisplay.textContent = gameState.roomId;
       
-      // CORREÇÃO: Geração de link dinâmica
+      // Geração de link dinâmica
       const baseUrl = window.location.href.split('?')[0];
       const roomLink = `${baseUrl}?room=${gameState.roomId}`;
       elements.roomLinkInput.value = roomLink;
@@ -1662,10 +1684,8 @@
     }
     
     function showLoading(message) {
+      elements.loadingText.textContent = message;
       elements.loadingOverlay.classList.remove('hidden');
-      if (message) {
-        elements.loadingOverlay.querySelector('p').textContent = message;
-      }
     }
     
     function hideLoading() {
