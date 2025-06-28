@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>STOP da Gi</title>
+  <title>STOP da Gi - Edição Multiplayer (em construçã)</title>
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
@@ -840,6 +840,23 @@
     elements.startGameBtn.addEventListener('click', startGame);
     elements.submitAnswersBtn.addEventListener('click', submitAnswers);
     elements.playAgainBtn.addEventListener('click', playAgain);
+    
+    // Adiciona listener para habilitar/desabilitar botões conforme preenchimento
+    elements.nameInput.addEventListener('input', updateButtonStates);
+    elements.roomIdInput.addEventListener('input', updateButtonStates);
+
+    // Função para atualizar estados dos botões
+    function updateButtonStates() {
+      const nameFilled = elements.nameInput.value.trim() !== '';
+      const roomIdFilled = elements.roomIdInput.value.trim() !== '';
+      
+      // Habilita/desabilita botões principais
+      elements.createRoomBtn.disabled = !nameFilled;
+      elements.joinRoomBtn.disabled = !nameFilled;
+      
+      // Habilita/desabilita botão de confirmação
+      elements.confirmJoinBtn.disabled = !(nameFilled && roomIdFilled);
+    }
 
     // Funções do Jogo
     function createRoom() {
@@ -876,6 +893,7 @@
       elements.joinRoomForm.classList.remove('hidden');
       elements.joinRoomBtn.disabled = true;
       elements.createRoomBtn.disabled = true;
+      updateButtonStates(); // Atualiza estados dos botões
     }
 
     function joinRoom() {
@@ -1348,6 +1366,8 @@
         elements.joinRoomForm.classList.remove('hidden');
         elements.joinRoomBtn.disabled = true;
         elements.createRoomBtn.disabled = true;
+        // Habilita o botão de confirmação se o nome já estiver preenchido
+        updateButtonStates();
       }
       
       const fadeStyle = document.createElement('style');
@@ -1359,6 +1379,9 @@
         }
       `;
       document.head.appendChild(fadeStyle);
+      
+      // Atualiza estados dos botões inicialmente
+      updateButtonStates();
     });
   </script>
 </body>
