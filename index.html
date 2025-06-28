@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>STOP da Gi - Edição Multiplayer</title>
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
+  <!-- Firebase SDK Correto -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <style>
     :root {
       --primary: #00f0ff;
@@ -550,6 +550,34 @@
       animation: pulse 0.5s 3;
     }
 
+    /* ESTILO PARA BOTÃO DE SAIR - POSICIONAMENTO CORRIGIDO */
+    .exit-btn {
+      position: absolute;
+      top: 25px;
+      right: 25px;
+      padding: 10px 15px;
+      background: linear-gradient(135deg, #ff5555, #cc0000);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      z-index: 10;
+      transition: all 0.3s ease;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 0 0 5px rgba(255, 85, 85, 0.5);
+    }
+
+    .exit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 10px #ff5555;
+    }
+
+    .exit-btn:active {
+      transform: translateY(0);
+    }
+
     @keyframes scan {
       0% { transform: translateY(-100%); }
       100% { transform: translateY(100%); }
@@ -696,6 +724,14 @@
         height: 25px;
         font-size: 0.8rem;
       }
+      
+      /* Responsividade para botão de sair */
+      .exit-btn {
+        top: 15px;
+        right: 15px;
+        padding: 8px 12px;
+        font-size: 0.8rem;
+      }
     }
 
     .error-message {
@@ -721,6 +757,17 @@
     @keyframes fadeOut {
       from { opacity: 1; }
       to { opacity: 0; }
+    }
+    
+    /* Header com espaço para o botão */
+    .screen-header {
+      position: relative;
+      padding-top: 40px;
+    }
+    
+    .screen-header h2 {
+      margin-top: 0;
+      padding-top: 10px;
     }
   </style>
 </head>
@@ -753,11 +800,15 @@
       <div class="gi-assistant">
         Dica da Gi: Crie uma sala ou entre com o código compartilhado pelo host!
       </div>
+      
+      <button class="exit-btn hidden" id="exitLoginBtn">Sair</button>
     </div>
 
     <!-- Lobby -->
     <div id="lobbyScreen" class="hidden">
-      <h2>SALA DE JOGO</h2>
+      <div class="screen-header">
+        <h2>SALA DE JOGO</h2>
+      </div>
       
       <div class="room-info">
         <p>SALA: <span id="roomCodeDisplay"></span></p>
@@ -778,13 +829,17 @@
       <div class="gi-assistant">
         Dica da Gi: O jogo começa quando o host clicar em "Iniciar Jogo"!
       </div>
+      
+      <button class="exit-btn" id="exitLobbyBtn">Sair</button>
     </div>
 
     <!-- Jogo -->
     <div id="gameScreen" class="hidden">
-      <div class="game-header">
-        <div class="round-info">RODADA <span id="roundNumber">1</span>/5</div>
-        <div class="score-info">PONTOS: <span id="totalScore">0</span></div>
+      <div class="screen-header">
+        <div class="game-header">
+          <div class="round-info">RODADA <span id="roundNumber">1</span>/5</div>
+          <div class="score-info">PONTOS: <span id="totalScore">0</span></div>
+        </div>
       </div>
       
       <div class="timer-container">
@@ -842,11 +897,15 @@
       <div class="gi-assistant" id="gameTip">
         Dica da Gi: Escreva palavras que comecem com a letra sorteada!
       </div>
+      
+      <button class="exit-btn" id="exitGameBtn">Sair</button>
     </div>
 
     <!-- Tela de Vencedor -->
     <div id="winnerScreen" class="hidden">
-      <h2>FIM DE JOGO</h2>
+      <div class="screen-header">
+        <h2>FIM DE JOGO</h2>
+      </div>
       
       <div class="winner-card">
         <p>O VENCEDOR É:</p>
@@ -862,22 +921,24 @@
       <div class="gi-assistant">
         Dica da Gi: Clique em "Jogar Novamente" para uma nova partida!
       </div>
+      
+      <button class="exit-btn" id="exitWinnerBtn">Sair</button>
     </div>
   </div>
 
   <script>
-    // Configuração do Firebase (substitua com suas credenciais)
+    // Configuração do Firebase corrigida
     const firebaseConfig = {
-      apiKey: "SUA_API_KEY",
-      authDomain: "SEU_PROJETO.firebaseapp.com",
-      databaseURL: "https://SEU_PROJETO.firebaseio.com",
-      projectId: "SEU_PROJETO",
-      storageBucket: "SEU_PROJETO.appspot.com",
-      messagingSenderId: "SEU_SENDER_ID",
-      appId: "SEU_APP_ID"
+      apiKey: "AIzaSyBSQTqX0kMduYjDkG0VkXUOvotgWAGfePk",
+      authDomain: "stop-da-gi.firebaseapp.com",
+      databaseURL: "https://stop-da-gi-default-rtdb.firebaseio.com",
+      projectId: "stop-da-gi",
+      storageBucket: "stop-da-gi.appspot.com",
+      messagingSenderId: "592985493645",
+      appId: "1:592985493645:web:7e7d982e41a2a2c1ba92c4"
     };
 
-    // Inicialize o Firebase
+    // Inicialize o Firebase corretamente
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
@@ -887,6 +948,7 @@
     const gameState = {
       name: '',
       roomId: '',
+      roomIdFromLink: '',
       isHost: false,
       players: [],
       currentLetter: '',
@@ -913,7 +975,8 @@
         "Filmes internacionais valem pontos mesmo que sejam pouco conhecidos!",
         "Para 'Tenho em Casa', pense em objetos que começam com a letra!"
       ],
-      audioContext: null
+      audioContext: null,
+      roomRef: null
     };
 
     // Elementos do DOM
@@ -963,7 +1026,11 @@
       winnerScore: document.getElementById('winnerScore'),
       finalScores: document.getElementById('finalScores'),
       playAgainBtn: document.getElementById('playAgainBtn'),
-      soundToggle: document.getElementById('soundToggle')
+      soundToggle: document.getElementById('soundToggle'),
+      exitLoginBtn: document.getElementById('exitLoginBtn'),
+      exitLobbyBtn: document.getElementById('exitLobbyBtn'),
+      exitGameBtn: document.getElementById('exitGameBtn'),
+      exitWinnerBtn: document.getElementById('exitWinnerBtn')
     };
 
     // Event Listeners
@@ -975,6 +1042,10 @@
     elements.submitAnswersBtn.addEventListener('click', submitAnswers);
     elements.playAgainBtn.addEventListener('click', playAgain);
     elements.soundToggle.addEventListener('click', toggleSound);
+    elements.exitLoginBtn.addEventListener('click', leaveRoom);
+    elements.exitLobbyBtn.addEventListener('click', leaveRoom);
+    elements.exitGameBtn.addEventListener('click', leaveRoom);
+    elements.exitWinnerBtn.addEventListener('click', leaveRoom);
     
     // Adiciona listener para habilitar/desabilitar botões conforme preenchimento
     elements.nameInput.addEventListener('input', updateButtonStates);
@@ -1007,7 +1078,8 @@
       gameState.scores[name] = 0;
       
       // Cria sala no Firebase
-      database.ref('rooms/' + gameState.roomId).set({
+      gameState.roomRef = database.ref('rooms/' + gameState.roomId);
+      gameState.roomRef.set({
         host: name,
         players: { [name]: true },
         status: 'waiting',
@@ -1030,7 +1102,7 @@
       elements.joinRoomForm.classList.remove('hidden');
       elements.joinRoomBtn.disabled = true;
       elements.createRoomBtn.disabled = true;
-      updateButtonStates(); // Atualiza estados dos botões
+      updateButtonStates();
     }
 
     function joinRoom() {
@@ -1042,7 +1114,8 @@
       if (roomId.length !== 6) return showError('O código da sala deve ter 6 caracteres');
       
       // Verifica se a sala existe
-      database.ref('rooms/' + roomId).once('value').then(snapshot => {
+      gameState.roomRef = database.ref('rooms/' + roomId);
+      gameState.roomRef.once('value').then(snapshot => {
         if (!snapshot.exists()) {
           return showError('Sala não encontrada');
         }
@@ -1065,7 +1138,7 @@
         gameState.isHost = false;
         
         // Adiciona jogador à sala
-        database.ref('rooms/' + roomId + '/players/' + name).set(true);
+        gameState.roomRef.child('players/' + name).set(true);
         
         // Sincroniza estado do jogo
         gameState.round = roomData.round || 1;
@@ -1074,7 +1147,7 @@
         gameState.scores[name] = gameState.scores[name] || 0;
         
         // Atualiza scores no Firebase
-        database.ref('rooms/' + roomId + '/scores/' + name).set(gameState.scores[name]);
+        gameState.roomRef.child('scores/' + name).set(gameState.scores[name]);
         
         // Configura listeners
         setupRoomListeners();
@@ -1472,6 +1545,47 @@
       elements.soundToggle.querySelector('i').textContent = gameState.soundEnabled ? '🔊' : '🔇';
     }
 
+    // Função para sair da sala
+    function leaveRoom() {
+      // Remove o jogador da sala no Firebase
+      if (gameState.name && gameState.roomId) {
+        if (gameState.isHost) {
+          // Se for o host, remove a sala inteira
+          gameState.roomRef.remove();
+        } else {
+          // Se for um jogador, remove apenas ele mesmo
+          gameState.roomRef.child('players/' + gameState.name).remove();
+          gameState.roomRef.child('scores/' + gameState.name).remove();
+        }
+      }
+      
+      // Remove os listeners do Firebase
+      if (gameState.roomRef) {
+        gameState.roomRef.off();
+      }
+      
+      // Reseta o estado do jogo
+      gameState.roomId = '';
+      gameState.isHost = false;
+      gameState.players = [];
+      gameState.name = '';
+      clearInterval(gameState.timer);
+      
+      // Volta para a tela de login inicial
+      elements.loginScreen.classList.remove('hidden');
+      elements.lobbyScreen.classList.add('hidden');
+      elements.gameScreen.classList.add('hidden');
+      elements.winnerScreen.classList.add('hidden');
+      
+      // Esconde os botões de sair das outras telas
+      elements.exitLobbyBtn.classList.add('hidden');
+      elements.exitGameBtn.classList.add('hidden');
+      elements.exitWinnerBtn.classList.add('hidden');
+      
+      // Mostra o botão de sair na tela de login apenas se estiver em uma sala
+      elements.exitLoginBtn.classList.add('hidden');
+    }
+
     // Funções Auxiliares
     function generateRoomId() {
       return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -1566,38 +1680,110 @@
       document.head.appendChild(style);
     }
 
-    // Inicialização - CORREÇÃO CRÍTICA PARA ENTRAR EM SALAS EXISTENTES
+    // Inicialização - ENTRADA DIRETA VIA LINK
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       const roomId = urlParams.get('room');
       
       if (roomId) {
-        // Pré-preenche o campo do código da sala e mostra o formulário de entrada
-        elements.roomIdInput.value = roomId;
-        elements.joinRoomForm.classList.remove('hidden');
-        elements.joinRoomBtn.disabled = true;
-        elements.createRoomBtn.disabled = true;
+        gameState.roomIdFromLink = roomId;
         
-        // Foca no campo de nome para facilitar a entrada do jogador
-        elements.nameInput.focus();
+        // Modifica a tela de login para entrada direta
+        elements.loginScreen.innerHTML = `
+          <div class="login-header">
+            <h1>STOP da Gi</h1>
+            <p>Edição Multiplayer</p>
+          </div>
+          
+          <input id="nameInput" placeholder="Seu nome de jogador" />
+          
+          <button id="joinFromLinkBtn">ENTRAR NA SALA</button>
+          
+          <div class="gi-assistant">
+            Dica da Gi: Digite seu nome e clique em "Entrar na Sala" para participar!
+          </div>
+          
+          <button class="exit-btn" id="exitLoginBtn">Sair</button>
+        `;
         
-        // Atualiza estados dos botões
-        updateButtonStates();
+        // Atualiza referência ao botão de sair
+        elements.exitLoginBtn = document.getElementById('exitLoginBtn');
+        elements.exitLoginBtn.addEventListener('click', function() {
+          // Remove o parâmetro da URL e recarrega
+          window.history.replaceState({}, document.title, window.location.pathname);
+          location.reload();
+        });
         
-        // Mensagem especial quando o link já contém o código da sala
-        document.querySelector('.gi-assistant').textContent = 
-          'Dica da Gi: Digite seu nome e clique em CONFIRMAR para entrar na sala!';
+        // Adiciona evento ao novo botão
+        const joinBtn = document.getElementById('joinFromLinkBtn');
+        joinBtn.addEventListener('click', function() {
+          joinFromLink();
+        });
+        
+        // Atualiza o estado do botão conforme preenchimento
+        document.getElementById('nameInput').addEventListener('input', function() {
+          joinBtn.disabled = this.value.trim() === '';
+        });
+        
+        // Foca no campo de nome
+        setTimeout(() => {
+          document.getElementById('nameInput').focus();
+        }, 100);
+      } else {
+        // Para o fluxo normal, atualiza os listeners dos botões de sair
+        elements.exitLoginBtn.addEventListener('click', leaveRoom);
       }
       
-      const fadeStyle = document.createElement('style');
-      fadeStyle.textContent = `
-        @keyframes fadeOut {
-          0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-          50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
-          100% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-        }
-      `;
-      document.head.appendChild(fadeStyle);
+      // Função para entrar via link compartilhado
+      function joinFromLink() {
+        const name = document.getElementById('nameInput').value.trim();
+        if (!name) return showError('Por favor, digite seu nome');
+        
+        gameState.name = name;
+        gameState.roomId = gameState.roomIdFromLink;
+        gameState.isHost = false;
+        
+        // Verifica se a sala existe
+        gameState.roomRef = database.ref('rooms/' + gameState.roomId);
+        gameState.roomRef.once('value').then(snapshot => {
+          if (!snapshot.exists()) {
+            return showError('Sala não encontrada');
+          }
+          
+          const roomData = snapshot.val();
+          
+          // Verifica se o jogo já começou
+          if (roomData.status === 'playing') {
+            return showError('O jogo já começou nesta sala');
+          }
+          
+          // Verifica se a sala está cheia
+          const players = Object.keys(roomData.players || {});
+          if (players.length >= gameState.gameSettings.maxPlayers) {
+            return showError('A sala está cheia!');
+          }
+          
+          // Adiciona jogador à sala
+          gameState.roomRef.child('players/' + name).set(true);
+          
+          // Sincroniza estado do jogo
+          gameState.round = roomData.round || 1;
+          gameState.currentLetter = roomData.currentLetter || '';
+          gameState.scores = roomData.scores || {};
+          gameState.scores[name] = gameState.scores[name] || 0;
+          
+          // Atualiza scores no Firebase
+          gameState.roomRef.child('scores/' + name).set(gameState.scores[name]);
+          
+          // Configura listeners
+          setupRoomListeners();
+          
+          showLobby();
+          createParticles();
+        }).catch(error => {
+          showError('Erro ao entrar na sala: ' + error.message);
+        });
+      }
       
       // Atualiza estados dos botões inicialmente
       updateButtonStates();
