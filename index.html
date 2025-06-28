@@ -1037,7 +1037,8 @@
       const name = elements.nameInput.value.trim();
       const roomId = elements.roomIdInput.value.trim().toUpperCase();
       
-      if (!name || !roomId) return showError('Por favor, preencha todos os campos');
+      if (!name) return showError('Por favor, digite seu nome');
+      if (!roomId) return showError('Por favor, digite o código da sala');
       if (roomId.length !== 6) return showError('O código da sala deve ter 6 caracteres');
       
       // Verifica se a sala existe
@@ -1148,7 +1149,7 @@
       
       elements.roomCodeDisplay.textContent = gameState.roomId;
       
-      // CORREÇÃO CRÍTICA: Link atualizado para GitHub Pages
+      // Link corrigido para GitHub Pages
       const roomLink = `https://giovana-sejo.github.io/Jogo-Stop-Gi/?room=${gameState.roomId}`;
       elements.roomLinkInput.value = roomLink;
       
@@ -1565,18 +1566,27 @@
       document.head.appendChild(style);
     }
 
-    // Inicialização
+    // Inicialização - CORREÇÃO CRÍTICA PARA ENTRAR EM SALAS EXISTENTES
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       const roomId = urlParams.get('room');
       
       if (roomId) {
+        // Pré-preenche o campo do código da sala e mostra o formulário de entrada
         elements.roomIdInput.value = roomId;
         elements.joinRoomForm.classList.remove('hidden');
         elements.joinRoomBtn.disabled = true;
         elements.createRoomBtn.disabled = true;
-        // Habilita o botão de confirmação se o nome já estiver preenchido
+        
+        // Foca no campo de nome para facilitar a entrada do jogador
+        elements.nameInput.focus();
+        
+        // Atualiza estados dos botões
         updateButtonStates();
+        
+        // Mensagem especial quando o link já contém o código da sala
+        document.querySelector('.gi-assistant').textContent = 
+          'Dica da Gi: Digite seu nome e clique em CONFIRMAR para entrar na sala!';
       }
       
       const fadeStyle = document.createElement('style');
