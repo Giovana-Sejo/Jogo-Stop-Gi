@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>STOP da Gi - Edição Multiplayer</title>
-  <!-- Firebase SDK Correto -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <style>
@@ -550,12 +550,12 @@
       animation: pulse 0.5s 3;
     }
 
-    /* ESTILO PARA BOTÃO DE SAIR - POSICIONAMENTO CORRIGIDO */
+    /* BOTÃO SAIR - POSICIONAMENTO CORRIGIDO E REDIMENSIONADO */
     .exit-btn {
       position: absolute;
-      top: 25px;
-      right: 25px;
-      padding: 10px 15px;
+      top: 20px;
+      right: 20px;
+      padding: 8px 14px;
       background: linear-gradient(135deg, #ff5555, #cc0000);
       color: white;
       border: none;
@@ -567,6 +567,7 @@
       text-transform: uppercase;
       letter-spacing: 1px;
       box-shadow: 0 0 5px rgba(255, 85, 85, 0.5);
+      font-size: 0.9rem;
     }
 
     .exit-btn:hover {
@@ -576,6 +577,18 @@
 
     .exit-btn:active {
       transform: translateY(0);
+    }
+
+    /* HEADER COM ESPAÇO PARA O BOTÃO */
+    .screen-header {
+      position: relative;
+      padding-top: 45px;
+      margin-bottom: 20px;
+    }
+    
+    .screen-header h2 {
+      margin-top: 0;
+      padding-top: 10px;
     }
 
     @keyframes scan {
@@ -642,7 +655,7 @@
     .sound-toggle {
       position: absolute;
       top: 15px;
-      right: 15px;
+      left: 15px;
       background: rgba(255, 215, 0, 0.1);
       border: 1px solid var(--gold);
       border-radius: 50%;
@@ -725,12 +738,16 @@
         font-size: 0.8rem;
       }
       
-      /* Responsividade para botão de sair */
+      /* Botão de sair em dispositivos móveis */
       .exit-btn {
         top: 15px;
         right: 15px;
-        padding: 8px 12px;
+        padding: 7px 10px;
         font-size: 0.8rem;
+      }
+      
+      .screen-header {
+        padding-top: 40px;
       }
     }
 
@@ -757,17 +774,6 @@
     @keyframes fadeOut {
       from { opacity: 1; }
       to { opacity: 0; }
-    }
-    
-    /* Header com espaço para o botão */
-    .screen-header {
-      position: relative;
-      padding-top: 40px;
-    }
-    
-    .screen-header h2 {
-      margin-top: 0;
-      padding-top: 10px;
     }
   </style>
 </head>
@@ -927,7 +933,7 @@
   </div>
 
   <script>
-    // Configuração do Firebase corrigida
+    // Configuração do Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyBSQTqX0kMduYjDkG0VkXUOvotgWAGfePk",
       authDomain: "stop-da-gi.firebaseapp.com",
@@ -938,7 +944,7 @@
       appId: "1:592985493645:web:7e7d982e41a2a2c1ba92c4"
     };
 
-    // Inicialize o Firebase corretamente
+    // Inicialize o Firebase
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
@@ -1222,8 +1228,9 @@
       
       elements.roomCodeDisplay.textContent = gameState.roomId;
       
-      // Link corrigido para GitHub Pages
-      const roomLink = `https://giovana-sejo.github.io/Jogo-Stop-Gi/?room=${gameState.roomId}`;
+      // CORREÇÃO: Usar a URL atual para o link compartilhado
+      const currentUrl = window.location.href.split('?')[0];
+      const roomLink = `${currentUrl}?room=${gameState.roomId}`;
       elements.roomLinkInput.value = roomLink;
       
       elements.startGameBtn.classList.toggle('hidden', !gameState.isHost);
