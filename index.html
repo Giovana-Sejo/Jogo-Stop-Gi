@@ -217,7 +217,7 @@
       flex: 1;
     }
 
-    .ai-assistant {
+    .gi-assistant {
       margin-top: 1.5rem;
       padding: 1rem;
       background: rgba(255, 215, 0, 0.1);
@@ -228,8 +228,8 @@
       align-items: center;
     }
 
-    .ai-assistant::before {
-      content: '🤖';
+    .gi-assistant::before {
+      content: '🌟';
       margin-right: 10px;
       font-size: 1.2rem;
     }
@@ -725,7 +725,7 @@
         <button id="confirmJoinBtn">CONFIRMAR</button>
       </div>
       
-      <div class="ai-assistant">
+      <div class="gi-assistant">
         Dica da Gi: Crie uma sala ou entre com o código compartilhado pelo host!
       </div>
     </div>
@@ -750,7 +750,7 @@
       <button id="startGameBtn" class="hidden">INICIAR JOGO</button>
       <p id="waitingText">Aguardando o host iniciar o jogo...</p>
       
-      <div class="ai-assistant">
+      <div class="gi-assistant">
         Dica da Gi: O jogo começa quando o host clicar em "Iniciar Jogo"!
       </div>
     </div>
@@ -814,7 +814,7 @@
       
       <button type="button" id="submitAnswersBtn">ENVIAR RESPOSTAS</button>
       
-      <div class="ai-assistant" id="gameTip">
+      <div class="gi-assistant" id="gameTip">
         Dica da Gi: Escreva palavras que comecem com a letra sorteada!
       </div>
     </div>
@@ -834,7 +834,7 @@
       
       <button id="playAgainBtn">JOGAR NOVAMENTE</button>
       
-      <div class="ai-assistant">
+      <div class="gi-assistant">
         Dica da Gi: Clique em "Jogar Novamente" para uma nova partida!
       </div>
     </div>
@@ -876,10 +876,10 @@
         timePerRound: 70,
         winningScore: 150
       },
-      aiTips: [
+      giTips: [
         "Tente pensar em palavras menos óbvias para ganhar mais pontos!",
         "Nomes próprios valem pontos mesmo que sejam menos comuns!",
-        "A IA analisou que palavras com 3+ letras têm maior chance de valer pontos!",
+        "A Gi analisou que palavras com 3+ letras têm maior chance de valer pontos!",
         "Dica: Cores podem incluir tons como 'azul-marinho'!",
         "Você sabia? Alguns animais começam com letras difíceis como X (Xaréu)!",
         "Carros incluem marcas e modelos - seja criativo!",
@@ -1437,8 +1437,8 @@
     }
 
     function showRandomTip() {
-      const randomTip = gameState.aiTips[Math.floor(Math.random() * gameState.aiTips.length)];
-      document.querySelectorAll('.ai-assistant').forEach(el => {
+      const randomTip = gameState.giTips[Math.floor(Math.random() * gameState.giTips.length)];
+      document.querySelectorAll('.gi-assistant').forEach(el => {
         el.textContent = `Dica da Gi: ${randomTip}`;
       });
     }
@@ -1448,7 +1448,7 @@
       feedback.textContent = message;
       feedback.style.position = 'fixed';
       feedback.style.top = '50%';
-      feedback.style.left: '50%';
+      feedback.style.left = '50%';
       feedback.style.transform = 'translate(-50%, -50%)';
       feedback.style.color = color;
       feedback.style.fontSize = '2rem';
