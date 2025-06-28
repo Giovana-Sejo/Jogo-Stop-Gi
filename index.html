@@ -784,6 +784,33 @@
       text-align: center;
       box-shadow: 0 5px 15px rgba(0,0,0,0.5);
     }
+    
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+      color: var(--gold);
+      font-size: 1.5rem;
+      text-align: center;
+    }
+    
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(255, 215, 0, 0.3);
+      border-radius: 50%;
+      border-top-color: var(--gold);
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
 
     @keyframes slideIn {
       from { top: -100px; }
@@ -804,6 +831,12 @@
   
   <!-- Botão SAIR com novo design (ícone X) -->
   <button class="exit-btn hidden" id="exitBtn">✕</button>
+  
+  <!-- Overlay de carregamento -->
+  <div class="loading-overlay hidden" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <p>Conectando à sala...</p>
+  </div>
   
   <div class="container">
     <!-- Tela de Login -->
@@ -1047,7 +1080,8 @@
       finalScores: document.getElementById('finalScores'),
       playAgainBtn: document.getElementById('playAgainBtn'),
       soundToggle: document.getElementById('soundToggle'),
-      exitBtn: document.getElementById('exitBtn')
+      exitBtn: document.getElementById('exitBtn'),
+      loadingOverlay: document.getElementById('loadingOverlay')
     };
 
     // Event Listeners
@@ -1087,6 +1121,9 @@
       gameState.roomId = generateRoomId();
       gameState.isHost = true;
       
+      // Mostra overlay de carregamento
+      showLoading("Criando sala...");
+      
       // Inicializa scores
       gameState.scores = {};
       gameState.scores[name] = 0;
@@ -1101,15 +1138,16 @@
         round: 1,
         scores: gameState.scores,
         createdAt: firebase.database.ServerValue.TIMESTAMP
+      }).then(() => {
+        // Configura listeners
+        setupRoomListeners();
+        hideLoading();
+        showLobby();
+        createParticles();
       }).catch(error => {
+        hideLoading();
         showError('Erro ao criar sala: ' + error.message);
       });
-      
-      // Configura listeners
-      setupRoomListeners();
-      
-      showLobby();
-      createParticles();
     }
 
     function showJoinForm() {
@@ -1127,10 +1165,14 @@
       if (!roomId) return showError('Por favor, digite o código da sala');
       if (roomId.length !== 6) return showError('O código da sala deve ter 6 caracteres');
       
+      // Mostra overlay de carregamento
+      showLoading("Entrando na sala...");
+      
       // Verifica se a sala existe
       gameState.roomRef = database.ref('rooms/' + roomId);
       gameState.roomRef.once('value').then(snapshot => {
         if (!snapshot.exists()) {
+          hideLoading();
           return showError('Sala não encontrada');
         }
         
@@ -1138,12 +1180,14 @@
         
         // Verifica se o jogo já começou
         if (roomData.status === 'playing') {
+          hideLoading();
           return showError('O jogo já começou nesta sala');
         }
         
         // Verifica se a sala está cheia
         const players = Object.keys(roomData.players || {});
         if (players.length >= gameState.gameSettings.maxPlayers) {
+          hideLoading();
           return showError('A sala está cheia!');
         }
         
@@ -1166,9 +1210,11 @@
         // Configura listeners
         setupRoomListeners();
         
+        hideLoading();
         showLobby();
         createParticles();
       }).catch(error => {
+        hideLoading();
         showError('Erro ao entrar na sala: ' + error.message);
       });
     }
@@ -1178,6 +1224,7 @@
       
       // Adiciona timeout para conexão
       const connectionTimeout = setTimeout(() => {
+        hideLoading();
         showError('Tempo excedido ao conectar com o servidor');
       }, 10000);
       
@@ -1613,6 +1660,17 @@
         errorEl.remove();
       }, 4000);
     }
+    
+    function showLoading(message) {
+      elements.loadingOverlay.classList.remove('hidden');
+      if (message) {
+        elements.loadingOverlay.querySelector('p').textContent = message;
+      }
+    }
+    
+    function hideLoading() {
+      elements.loadingOverlay.classList.add('hidden');
+    }
 
     function showRandomTip() {
       const randomTip = gameState.giTips[Math.floor(Math.random() * gameState.giTips.length)];
@@ -1698,90 +1756,11 @@
       const roomId = urlParams.get('room');
       
       if (roomId) {
-        gameState.roomIdFromLink = roomId;
-        
-        // Modifica a tela de login para entrada direta
-        elements.loginScreen.innerHTML = `
-          <div class="login-header">
-            <h1>STOP da Gi</h1>
-            <p>Edição Multiplayer</p>
-          </div>
-          
-          <input id="nameInput" placeholder="Seu nome de jogador" />
-          
-          <button id="joinFromLinkBtn">ENTRAR NA SALA</button>
-          
-          <div class="gi-assistant">
-            Dica da Gi: Digite seu nome e clique em "Entrar na Sala" para participar!
-          </div>
-        `;
-        
-        // Adiciona evento ao novo botão
-        const joinBtn = document.getElementById('joinFromLinkBtn');
-        joinBtn.addEventListener('click', function() {
-          joinFromLink();
-        });
-        
-        // Atualiza o estado do botão conforme preenchimento
-        document.getElementById('nameInput').addEventListener('input', function() {
-          joinBtn.disabled = this.value.trim() === '';
-        });
-        
+        // Preenche o campo do código da sala e mostra o formulário de entrada
+        elements.roomIdInput.value = roomId;
+        showJoinForm();
         // Foca no campo de nome
-        setTimeout(() => {
-          document.getElementById('nameInput').focus();
-        }, 100);
-      }
-      
-      // Função para entrar via link compartilhado
-      function joinFromLink() {
-        const name = document.getElementById('nameInput').value.trim();
-        if (!name) return showError('Por favor, digite seu nome');
-        
-        gameState.name = name;
-        gameState.roomId = gameState.roomIdFromLink;
-        gameState.isHost = false;
-        
-        // Verifica se a sala existe
-        gameState.roomRef = database.ref('rooms/' + gameState.roomId);
-        gameState.roomRef.once('value').then(snapshot => {
-          if (!snapshot.exists()) {
-            return showError('Sala não encontrada');
-          }
-          
-          const roomData = snapshot.val();
-          
-          // Verifica se o jogo já começou
-          if (roomData.status === 'playing') {
-            return showError('O jogo já começou nesta sala');
-          }
-          
-          // Verifica se a sala está cheia
-          const players = Object.keys(roomData.players || {});
-          if (players.length >= gameState.gameSettings.maxPlayers) {
-            return showError('A sala está cheia!');
-          }
-          
-          // Adiciona jogador à sala
-          gameState.roomRef.child('players/' + name).set(true);
-          
-          // Sincroniza estado do jogo
-          gameState.round = roomData.round || 1;
-          gameState.currentLetter = roomData.currentLetter || '';
-          gameState.scores = roomData.scores || {};
-          gameState.scores[name] = gameState.scores[name] || 0;
-          
-          // Atualiza scores no Firebase
-          gameState.roomRef.child('scores/' + name).set(gameState.scores[name]);
-          
-          // Configura listeners
-          setupRoomListeners();
-          
-          showLobby();
-          createParticles();
-        }).catch(error => {
-          showError('Erro ao entrar na sala: ' + error.message);
-        });
+        elements.nameInput.focus();
       }
       
       // Atualiza estados dos botões inicialmente
