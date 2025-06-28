@@ -18,6 +18,7 @@
       --gold-light: #FFEC8B;
       --gold-dark: #D4AF37;
       --danger: #ff5555;
+      --danger-dark: #cc0000;
       --neon-glow: 0 0 10px var(--gold), 0 0 20px var(--gold);
     }
 
@@ -401,16 +402,16 @@
 
     .timer-display.warning {
       animation: pulse 0.5s infinite alternate;
-      background: rgba(200, 0, 0, 0.7);
+      background: var(--danger);
       color: white !important;
-      border-color: #ff0000 !important;
+      border-color: var(--danger) !important;
     }
 
     .timer-display.critical {
       animation: pulse 0.3s infinite alternate, shake 0.5s infinite;
-      background-color: var(--danger) !important;
+      background-color: var(--danger-dark) !important;
       color: white !important;
-      border-color: var(--danger) !important;
+      border-color: var(--danger-dark) !important;
       box-shadow: 0 0 15px rgba(255, 0, 0, 0.7);
     }
 
@@ -684,6 +685,17 @@
         padding: 1rem;
         width: 100%;
       }
+      
+      .timer-display {
+        font-size: 1.5rem;
+        padding: 0.6rem 1.2rem;
+      }
+      
+      .player-avatar {
+        width: 25px;
+        height: 25px;
+        font-size: 0.8rem;
+      }
     }
   </style>
 </head>
@@ -714,7 +726,7 @@
       </div>
       
       <div class="ai-assistant">
-        Dica: Crie uma sala ou entre com o código compartilhado pelo host!
+        Dica da Gi: Crie uma sala ou entre com o código compartilhado pelo host!
       </div>
     </div>
 
@@ -739,7 +751,7 @@
       <p id="waitingText">Aguardando o host iniciar o jogo...</p>
       
       <div class="ai-assistant">
-        Dica da IA: O jogo começa quando o host clicar em "Iniciar Jogo"!
+        Dica da Gi: O jogo começa quando o host clicar em "Iniciar Jogo"!
       </div>
     </div>
 
@@ -794,7 +806,6 @@
           <label>FILME <span id="letterMovie">?</span></label>
           <input id="movieAnswer" placeholder="Ex: Avatar" />
         </div>
-        <!-- Novo campo adicionado -->
         <div class="form-group">
           <label>TENHO EM CASA <span id="letterItem">?</span></label>
           <input id="itemAnswer" placeholder="Ex: Abajur" />
@@ -804,7 +815,7 @@
       <button type="button" id="submitAnswersBtn">ENVIAR RESPOSTAS</button>
       
       <div class="ai-assistant" id="gameTip">
-        Dica da IA: Escreva palavras que comecem com a letra sorteada!
+        Dica da Gi: Escreva palavras que comecem com a letra sorteada!
       </div>
     </div>
 
@@ -824,18 +835,10 @@
       <button id="playAgainBtn">JOGAR NOVAMENTE</button>
       
       <div class="ai-assistant">
-        Dica da IA: Clique em "Jogar Novamente" para uma nova partida!
+        Dica da Gi: Clique em "Jogar Novamente" para uma nova partida!
       </div>
     </div>
   </div>
-
-  <audio id="beepSound" preload="auto">
-    <source src="data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV" type="audio/mpeg">
-  </audio>
-  
-  <audio id="successSound" preload="auto">
-    <source src="data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV" type="audio/mpeg">
-  </audio>
 
   <script>
     // Configuração do Firebase (substitua com suas credenciais)
@@ -882,7 +885,8 @@
         "Carros incluem marcas e modelos - seja criativo!",
         "Filmes internacionais valem pontos mesmo que sejam pouco conhecidos!",
         "Para 'Tenho em Casa', pense em objetos que começam com a letra!"
-      ]
+      ],
+      audioContext: null
     };
 
     // Elementos do DOM
@@ -933,12 +937,6 @@
       finalScores: document.getElementById('finalScores'),
       playAgainBtn: document.getElementById('playAgainBtn'),
       soundToggle: document.getElementById('soundToggle')
-    };
-
-    // Sons
-    const sounds = {
-      beep: document.getElementById('beepSound'),
-      success: document.getElementById('successSound')
     };
 
     // Event Listeners
@@ -1241,26 +1239,33 @@
       }, 1000);
     }
 
+    // Função para gerar beep com Web Audio API
     function playBeep() {
       if (!gameState.soundEnabled) return;
       
       try {
-        sounds.beep.currentTime = 0;
-        sounds.beep.volume = 0.6;
-        sounds.beep.play();
+        // Cria o contexto de áudio se ainda não existir
+        if (!gameState.audioContext) {
+          gameState.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        
+        const oscillator = gameState.audioContext.createOscillator();
+        const gainNode = gameState.audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(gameState.audioContext.destination);
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.value = 800; // Frequência em Hz
+        gainNode.gain.value = 0.3; // Volume
+        
+        // Configura o beep (50ms de duração)
+        oscillator.start();
+        setTimeout(() => {
+          oscillator.stop();
+        }, 50);
       } catch (e) {
         console.log("Erro ao tocar beep:", e);
-      }
-    }
-
-    function playSuccessSound() {
-      if (!gameState.soundEnabled) return;
-      
-      try {
-        sounds.success.currentTime = 0;
-        sounds.success.play();
-      } catch (e) {
-        console.log("Erro ao tocar som de sucesso:", e);
       }
     }
 
@@ -1331,7 +1336,6 @@
       
       if (roundScore > 0) {
         showFeedback(`+${roundScore} pontos!`, '#FFD700');
-        playSuccessSound();
       }
     }
 
@@ -1435,7 +1439,7 @@
     function showRandomTip() {
       const randomTip = gameState.aiTips[Math.floor(Math.random() * gameState.aiTips.length)];
       document.querySelectorAll('.ai-assistant').forEach(el => {
-        el.textContent = `Dica da IA: ${randomTip}`;
+        el.textContent = `Dica da Gi: ${randomTip}`;
       });
     }
 
@@ -1444,7 +1448,7 @@
       feedback.textContent = message;
       feedback.style.position = 'fixed';
       feedback.style.top = '50%';
-      feedback.style.left = '50%';
+      feedback.style.left: '50%';
       feedback.style.transform = 'translate(-50%, -50%)';
       feedback.style.color = color;
       feedback.style.fontSize = '2rem';
