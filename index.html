@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>STOP da Gi - Edição Multiplayer (Em Construção)</title>
+  <title>STOP da Gi - Edição Multiplayer</title>
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
@@ -697,6 +697,31 @@
         font-size: 0.8rem;
       }
     }
+
+    .error-message {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(204, 0, 0, 0.8);
+      color: white;
+      padding: 15px 30px;
+      border-radius: 8px;
+      z-index: 10000;
+      animation: slideIn 0.5s, fadeOut 2.5s 2s forwards;
+      text-align: center;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    }
+
+    @keyframes slideIn {
+      from { top: -100px; }
+      to { top: 20px; }
+    }
+
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
   </style>
 </head>
 <body>
@@ -853,7 +878,9 @@
     };
 
     // Inicialize o Firebase
-    firebase.initializeApp(firebaseConfig);
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
     const database = firebase.database();
 
     // Estado do Jogo
@@ -988,6 +1015,8 @@
         round: 1,
         scores: gameState.scores,
         createdAt: firebase.database.ServerValue.TIMESTAMP
+      }).catch(error => {
+        showError('Erro ao criar sala: ' + error.message);
       });
       
       // Configura listeners
@@ -1018,8 +1047,16 @@
         }
         
         const roomData = snapshot.val();
+        
+        // Verifica se o jogo já começou
         if (roomData.status === 'playing') {
           return showError('O jogo já começou nesta sala');
+        }
+        
+        // Verifica se a sala está cheia
+        const players = Object.keys(roomData.players || {});
+        if (players.length >= gameState.gameSettings.maxPlayers) {
+          return showError('A sala está cheia!');
         }
         
         gameState.name = name;
@@ -1051,8 +1088,14 @@
     function setupRoomListeners() {
       const roomRef = database.ref('rooms/' + gameState.roomId);
       
+      // Adiciona timeout para conexão
+      const connectionTimeout = setTimeout(() => {
+        showError('Tempo excedido ao conectar com o servidor');
+      }, 10000);
+      
       // Atualiza lista de jogadores
       roomRef.child('players').on('value', snapshot => {
+        clearTimeout(connectionTimeout);
         const players = snapshot.val() || {};
         gameState.players = Object.keys(players);
         updatePlayerList();
@@ -1105,7 +1148,8 @@
       
       elements.roomCodeDisplay.textContent = gameState.roomId;
       
-      const roomLink = `${window.location.origin}${window.location.pathname}?room=${gameState.roomId}`;
+      // CORREÇÃO CRÍTICA: Link atualizado para GitHub Pages
+      const roomLink = `https://giovana-sejo.github.io/Jogo-Stop-Gi/?room=${gameState.roomId}`;
       elements.roomLinkInput.value = roomLink;
       
       elements.startGameBtn.classList.toggle('hidden', !gameState.isHost);
@@ -1433,7 +1477,14 @@
     }
 
     function showError(message) {
-      alert(message);
+      const errorEl = document.createElement('div');
+      errorEl.className = 'error-message';
+      errorEl.textContent = message;
+      document.body.appendChild(errorEl);
+      
+      setTimeout(() => {
+        errorEl.remove();
+      }, 4000);
     }
 
     function showRandomTip() {
