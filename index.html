@@ -563,13 +563,20 @@
                 <button id="joinRoomBtn">ENTRAR EM SALA</button>
             </div>
             
+            <!-- Formulário para criar sala com código personalizado -->
+            <div id="createRoomForm" class="hidden">
+                <input id="roomCodeInput" placeholder="Seu código pessoal (ex: GI123)" maxlength="6" />
+                <button id="confirmCreateBtn">CRIAR SALA</button>
+            </div>
+            
+            <!-- Formulário para entrar em sala -->
             <div id="joinRoomForm" class="hidden">
                 <input id="roomIdInput" placeholder="Código da sala" />
-                <button id="confirmJoinBtn">CONFIRMAR</button>
+                <button id="confirmJoinBtn">ENTRAR</button>
             </div>
             
             <div class="gi-assistant">
-                Dica da Gi: Crie uma sala ou entre com o código compartilhado pelo host!
+                Dica da Gi: Crie uma sala com seu código pessoal ou entre com o código compartilhado!
             </div>
         </div>
 
@@ -582,10 +589,11 @@
             <div class="room-info">
                 <p>SALA: <span id="roomCodeDisplay"></span></p>
                 <p>JOGADORES: <span id="playerCount">1</span>/8</p>
+                <p>HOST: <span id="hostName"></span></p>
             </div>
             
             <div class="room-link">
-                <input id="roomLinkInput" type="text" readonly />
+                <input id="roomLinkInput" type="text" readonly placeholder="Copie este link para compartilhar" />
                 <button id="copyLinkBtn">COPIAR</button>
             </div>
             
@@ -596,7 +604,7 @@
             <p id="waitingText">Aguardando o host iniciar o jogo...</p>
             
             <div class="gi-assistant">
-                Dica da Gi: O jogo começa quando o host clicar em "Iniciar Jogo"!
+                Dica da Gi: Compartilhe o link acima para convidar amigos!
             </div>
         </div>
 
@@ -736,10 +744,14 @@
             nameInput: document.getElementById('nameInput'),
             createRoomBtn: document.getElementById('createRoomBtn'),
             joinRoomBtn: document.getElementById('joinRoomBtn'),
+            createRoomForm: document.getElementById('createRoomForm'),
             joinRoomForm: document.getElementById('joinRoomForm'),
+            roomCodeInput: document.getElementById('roomCodeInput'),
             roomIdInput: document.getElementById('roomIdInput'),
+            confirmCreateBtn: document.getElementById('confirmCreateBtn'),
             confirmJoinBtn: document.getElementById('confirmJoinBtn'),
             roomCodeDisplay: document.getElementById('roomCodeDisplay'),
+            hostName: document.getElementById('hostName'),
             playerCount: document.getElementById('playerCount'),
             roomLinkInput: document.getElementById('roomLinkInput'),
             copyLinkBtn: document.getElementById('copyLinkBtn'),
@@ -779,8 +791,9 @@
         };
 
         // Event Listeners
-        elements.createRoomBtn.addEventListener('click', createRoom);
+        elements.createRoomBtn.addEventListener('click', showCreateForm);
         elements.joinRoomBtn.addEventListener('click', showJoinForm);
+        elements.confirmCreateBtn.addEventListener('click', createRoom);
         elements.confirmJoinBtn.addEventListener('click', joinRoom);
         elements.copyLinkBtn.addEventListener('click', copyRoomLink);
         elements.startGameBtn.addEventListener('click', startGame);
@@ -794,40 +807,64 @@
             return 'player_' + Math.random().toString(36).substring(2, 15);
         }
 
+        function showCreateForm() {
+            elements.joinRoomForm.classList.add('hidden');
+            elements.createRoomForm.classList.remove('hidden');
+            elements.createRoomBtn.disabled = true;
+            elements.joinRoomBtn.disabled = true;
+        }
+
+        function showJoinForm() {
+            elements.createRoomForm.classList.add('hidden');
+            elements.joinRoomForm.classList.remove('hidden');
+            elements.createRoomBtn.disabled = true;
+            elements.joinRoomBtn.disabled = true;
+        }
+
         function createRoom() {
             const name = elements.nameInput.value.trim();
+            const roomCode = elements.roomCodeInput.value.trim().toUpperCase();
+            
             if (!name) return alert('Digite seu nome!');
+            if (!roomCode) return alert('Digite seu código pessoal!');
+            if (roomCode.length < 3) return alert('Código deve ter pelo menos 3 caracteres!');
             
             gameState.name = name;
             gameState.playerId = generatePlayerId();
-            gameState.roomId = generateRoomId();
+            gameState.roomId = roomCode;
             gameState.isHost = true;
             
             const roomRef = database.ref('rooms/' + gameState.roomId);
             gameState.roomRef = roomRef;
             
-            roomRef.set({
-                host: gameState.playerId,
-                players: {
-                    [gameState.playerId]: {
-                        name: gameState.name,
-                        score: 0
-                    }
-                },
-                status: 'waiting'
-            }).then(() => {
-                setupRoomListeners();
-                showLobby();
-            }).catch(error => {
-                console.error("Erro ao criar sala:", error);
-                alert('Erro ao criar sala. Tente novamente.');
+            // Verificar se sala já existe
+            roomRef.once('value').then(snapshot => {
+                if (snapshot.exists()) {
+                    alert('Este código já está em uso. Escolha outro.');
+                    return;
+                }
+                
+                // Criar sala
+                roomRef.set({
+                    host: {
+                        id: gameState.playerId,
+                        name: gameState.name
+                    },
+                    players: {
+                        [gameState.playerId]: {
+                            name: gameState.name,
+                            score: 0
+                        }
+                    },
+                    status: 'waiting'
+                }).then(() => {
+                    setupRoomListeners();
+                    showLobby();
+                }).catch(error => {
+                    console.error("Erro ao criar sala:", error);
+                    alert('Erro ao criar sala. Tente novamente.');
+                });
             });
-        }
-
-        function showJoinForm() {
-            elements.joinRoomForm.classList.remove('hidden');
-            elements.joinRoomBtn.disabled = true;
-            elements.createRoomBtn.disabled = true;
         }
 
         function joinRoom() {
@@ -854,13 +891,13 @@
                 const roomData = snapshot.val();
                 const players = roomData.players || {};
                 
-                // Verifica capacidade da sala
+                // Verificar capacidade
                 if (Object.keys(players).length >= gameState.gameSettings.maxPlayers) {
                     alert('Sala cheia!');
                     return;
                 }
                 
-                // Adiciona jogador
+                // Adicionar jogador
                 roomRef.child('players/' + gameState.playerId).set({
                     name: gameState.name,
                     score: 0
@@ -882,22 +919,27 @@
                 const roomData = snapshot.val();
                 if (!roomData) return;
                 
-                const hostId = roomData.host;
-                updatePlayerList(roomData.players, hostId);
+                updatePlayerList(roomData.players, roomData.host);
                 elements.playerCount.textContent = Object.keys(roomData.players).length;
                 
-                // Mostra botão de iniciar apenas para o host
+                // Atualizar nome do host
+                elements.hostName.textContent = roomData.host.name;
+                
+                // Mostrar botão de iniciar apenas para o host
+                const isHost = gameState.playerId === roomData.host.id;
+                gameState.isHost = isHost;
+                
                 elements.startGameBtn.classList.toggle(
                     'hidden', 
-                    !gameState.isHost || roomData.status !== 'waiting'
+                    !isHost || roomData.status !== 'waiting'
                 );
                 
                 elements.waitingText.classList.toggle(
                     'hidden', 
-                    gameState.isHost || roomData.status === 'inGame'
+                    isHost || roomData.status === 'inGame'
                 );
                 
-                // Atualiza estado do jogo
+                // Atualizar estado do jogo
                 if (roomData.status === 'inGame') {
                     startGame();
                 }
@@ -913,18 +955,19 @@
             
             elements.roomCodeDisplay.textContent = gameState.roomId;
             
+            // Gerar link compartilhável
             const baseUrl = window.location.href.split('?')[0];
             const roomLink = `${baseUrl}?room=${gameState.roomId}`;
             elements.roomLinkInput.value = roomLink;
         }
 
-        function updatePlayerList(players, hostId) {
+        function updatePlayerList(players, host) {
             elements.playerList.innerHTML = '';
             
             Object.keys(players).forEach(playerId => {
                 const player = players[playerId];
                 const isCurrentPlayer = playerId === gameState.playerId;
-                const isHost = playerId === hostId;
+                const isHost = playerId === host.id;
                 
                 const li = document.createElement('li');
                 if (isCurrentPlayer) li.classList.add('current-player');
@@ -1037,11 +1080,9 @@
                 // Remove jogador da sala
                 gameState.roomRef.child('players/' + gameState.playerId).remove();
                 
-                // Se host sair, deleta sala após 5s
+                // Se host sair, deleta sala
                 if (gameState.isHost) {
-                    setTimeout(() => {
-                        gameState.roomRef.remove();
-                    }, 5000);
+                    gameState.roomRef.remove();
                 }
             }
             
@@ -1063,10 +1104,12 @@
             elements.lobbyScreen.classList.add('hidden');
             elements.gameScreen.classList.add('hidden');
             elements.winnerScreen.classList.add('hidden');
-        }
-
-        function generateRoomId() {
-            return Math.random().toString(36).substring(2, 8).toUpperCase();
+            
+            // Resetar formulários
+            elements.createRoomForm.classList.add('hidden');
+            elements.joinRoomForm.classList.add('hidden');
+            elements.createRoomBtn.disabled = false;
+            elements.joinRoomBtn.disabled = false;
         }
 
         function toggleSound() {
@@ -1081,7 +1124,9 @@
             
             if (roomId) {
                 elements.roomIdInput.value = roomId;
-                showJoinForm();
+                elements.joinRoomForm.classList.remove('hidden');
+                elements.createRoomBtn.disabled = true;
+                elements.joinRoomBtn.disabled = true;
             }
         });
     </script>
