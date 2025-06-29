@@ -17,6 +17,8 @@
             --gold-dark: #D4AF37;
             --danger: #ff5555;
             --danger-dark: #cc0000;
+            --success: #00c853;
+            --success-dark: #009624;
             --neon-glow: 0 0 10px var(--gold), 0 0 20px var(--gold);
         }
 
@@ -220,6 +222,9 @@
             border-bottom-right-radius: 0;
             margin: 0;
             font-family: monospace;
+            background: rgba(255, 215, 0, 0.2);
+            border: 1px solid var(--gold);
+            box-shadow: 0 0 5px var(--gold);
         }
 
         .room-link button {
@@ -467,6 +472,42 @@
             z-index: 100;
             transition: all 0.3s ease;
         }
+        
+        .back-btn {
+            background: linear-gradient(135deg, #6c757d, #495057) !important;
+            margin-top: 10px;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.4);
+        }
+
+        /* Estilo para erro */
+        .error-message {
+            color: var(--danger);
+            text-align: center;
+            margin: 10px 0;
+            animation: pulse 0.5s;
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(255, 85, 85, 0.7);
+        }
+
+        /* Feedback visual para cópia bem-sucedida */
+        .copied-feedback {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 200, 83, 0.9);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-weight: bold;
+            z-index: 1000;
+            box-shadow: 0 0 20px rgba(0, 200, 83, 0.7);
+            animation: fadeOut 2s forwards;
+        }
 
         @media (max-width: 768px) {
             .container {
@@ -539,6 +580,12 @@
             50% { transform: translateY(-20px) translateX(10px); }
             100% { transform: translateY(0) translateX(0); }
         }
+        
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            70% { opacity: 1; }
+            100% { opacity: 0; display: none; }
+        }
     </style>
 </head>
 <body>
@@ -559,24 +606,28 @@
             <input id="nameInput" placeholder="Seu nome de jogador" />
             
             <div class="login-options">
-                <button id="createRoomBtn">CRIAR SALA</button>
-                <button id="joinRoomBtn">ENTRAR EM SALA</button>
+                <button id="showCreateFormBtn">CRIAR SALA</button>
+                <button id="showJoinFormBtn">ENTRAR EM SALA</button>
             </div>
             
-            <!-- Formulário único para criação de sala -->
+            <!-- Formulário para criação de sala -->
             <div id="createRoomForm" class="hidden">
                 <input id="roomCodeInput" placeholder="Seu código pessoal (ex: GI123)" maxlength="6" />
-                <button id="confirmCreateBtn">CRIAR SALA</button>
+                <button id="confirmCreateBtn">CRIAR MINHA SALA</button>
+                <div id="createRoomError" class="error-message" style="display: none;"></div>
+                <button class="back-btn" onclick="showMainOptions()">VOLTAR</button>
             </div>
             
-            <!-- Formulário para entrar em sala -->
+            <!-- Formulário para entrada em sala -->
             <div id="joinRoomForm" class="hidden">
                 <input id="roomIdInput" placeholder="Código da sala" />
-                <button id="confirmJoinBtn">ENTRAR</button>
+                <button id="confirmJoinBtn">ENTRAR NA SALA</button>
+                <div id="joinRoomError" class="error-message" style="display: none;"></div>
+                <button class="back-btn" onclick="showMainOptions()">VOLTAR</button>
             </div>
             
             <div class="gi-assistant">
-                Dica da Gi: Crie uma sala com seu código pessoal ou entre com o código compartilhado!
+                Dica da Gi: Crie sua sala ou entre com o código compartilhado!
             </div>
         </div>
 
@@ -742,14 +793,16 @@
             gameScreen: document.getElementById('gameScreen'),
             winnerScreen: document.getElementById('winnerScreen'),
             nameInput: document.getElementById('nameInput'),
-            createRoomBtn: document.getElementById('createRoomBtn'),
-            joinRoomBtn: document.getElementById('joinRoomBtn'),
+            showCreateFormBtn: document.getElementById('showCreateFormBtn'),
+            showJoinFormBtn: document.getElementById('showJoinFormBtn'),
             createRoomForm: document.getElementById('createRoomForm'),
             joinRoomForm: document.getElementById('joinRoomForm'),
             roomCodeInput: document.getElementById('roomCodeInput'),
             roomIdInput: document.getElementById('roomIdInput'),
             confirmCreateBtn: document.getElementById('confirmCreateBtn'),
             confirmJoinBtn: document.getElementById('confirmJoinBtn'),
+            createRoomError: document.getElementById('createRoomError'),
+            joinRoomError: document.getElementById('joinRoomError'),
             roomCodeDisplay: document.getElementById('roomCodeDisplay'),
             hostName: document.getElementById('hostName'),
             playerCount: document.getElementById('playerCount'),
@@ -791,8 +844,8 @@
         };
 
         // Event Listeners
-        elements.createRoomBtn.addEventListener('click', showCreateForm);
-        elements.joinRoomBtn.addEventListener('click', showJoinForm);
+        elements.showCreateFormBtn.addEventListener('click', showCreateForm);
+        elements.showJoinFormBtn.addEventListener('click', showJoinForm);
         elements.confirmCreateBtn.addEventListener('click', createRoom);
         elements.confirmJoinBtn.addEventListener('click', joinRoom);
         elements.copyLinkBtn.addEventListener('click', copyRoomLink);
@@ -808,28 +861,45 @@
         }
 
         function showCreateForm() {
-            // Esconder botões principais e mostrar formulário de criação
-            elements.joinRoomForm.classList.add('hidden');
+            elements.showCreateFormBtn.classList.add('hidden');
+            elements.showJoinFormBtn.classList.add('hidden');
             elements.createRoomForm.classList.remove('hidden');
-            elements.createRoomBtn.disabled = true;
-            elements.joinRoomBtn.disabled = true;
         }
 
         function showJoinForm() {
-            // Esconder botões principais e mostrar formulário de entrada
-            elements.createRoomForm.classList.add('hidden');
+            elements.showCreateFormBtn.classList.add('hidden');
+            elements.showJoinFormBtn.classList.add('hidden');
             elements.joinRoomForm.classList.remove('hidden');
-            elements.createRoomBtn.disabled = true;
-            elements.joinRoomBtn.disabled = true;
+        }
+
+        function showMainOptions() {
+            elements.createRoomForm.classList.add('hidden');
+            elements.joinRoomForm.classList.add('hidden');
+            elements.showCreateFormBtn.classList.remove('hidden');
+            elements.showJoinFormBtn.classList.remove('hidden');
         }
 
         function createRoom() {
             const name = elements.nameInput.value.trim();
             const roomCode = elements.roomCodeInput.value.trim().toUpperCase();
             
-            if (!name) return alert('Digite seu nome!');
-            if (!roomCode) return alert('Digite seu código pessoal!');
-            if (roomCode.length < 3) return alert('Código deve ter pelo menos 3 caracteres!');
+            // Validação
+            if (!name) {
+                showError('createRoomError', 'Digite seu nome!');
+                return;
+            }
+            if (!roomCode) {
+                showError('createRoomError', 'Digite seu código pessoal!');
+                return;
+            }
+            if (roomCode.length < 3) {
+                showError('createRoomError', 'Código deve ter pelo menos 3 caracteres!');
+                return;
+            }
+            
+            // Feedback visual
+            elements.confirmCreateBtn.textContent = 'CRIANDO...';
+            elements.confirmCreateBtn.disabled = true;
             
             gameState.name = name;
             gameState.playerId = generatePlayerId();
@@ -842,7 +912,9 @@
             // Verificar se sala já existe
             roomRef.once('value').then(snapshot => {
                 if (snapshot.exists()) {
-                    alert('Este código já está em uso. Escolha outro.');
+                    elements.confirmCreateBtn.textContent = 'CRIAR MINHA SALA';
+                    elements.confirmCreateBtn.disabled = false;
+                    showError('createRoomError', 'Este código já está em uso. Escolha outro.');
                     return;
                 }
                 
@@ -858,13 +930,16 @@
                             score: 0
                         }
                     },
-                    status: 'waiting'
+                    status: 'waiting',
+                    createdAt: firebase.database.ServerValue.TIMESTAMP
                 }).then(() => {
                     setupRoomListeners();
                     showLobby();
                 }).catch(error => {
                     console.error("Erro ao criar sala:", error);
-                    alert('Erro ao criar sala. Tente novamente.');
+                    showError('createRoomError', 'Erro ao criar sala. Tente novamente.');
+                    elements.confirmCreateBtn.textContent = 'CRIAR MINHA SALA';
+                    elements.confirmCreateBtn.disabled = false;
                 });
             });
         }
@@ -873,8 +948,14 @@
             const name = elements.nameInput.value.trim();
             const roomId = elements.roomIdInput.value.trim().toUpperCase();
             
-            if (!name) return alert('Digite seu nome!');
-            if (!roomId) return alert('Digite o código da sala!');
+            if (!name) {
+                showError('joinRoomError', 'Digite seu nome!');
+                return;
+            }
+            if (!roomId) {
+                showError('joinRoomError', 'Digite o código da sala!');
+                return;
+            }
             
             gameState.name = name;
             gameState.playerId = generatePlayerId();
@@ -886,7 +967,7 @@
             
             roomRef.once('value').then(snapshot => {
                 if (!snapshot.exists()) {
-                    alert('Sala não encontrada!');
+                    showError('joinRoomError', 'Sala não encontrada!');
                     return;
                 }
                 
@@ -895,7 +976,7 @@
                 
                 // Verificar capacidade
                 if (Object.keys(players).length >= gameState.gameSettings.maxPlayers) {
-                    alert('Sala cheia!');
+                    showError('joinRoomError', 'Sala cheia!');
                     return;
                 }
                 
@@ -908,11 +989,11 @@
                     showLobby();
                 }).catch(error => {
                     console.error("Erro ao entrar na sala:", error);
-                    alert('Erro ao entrar na sala. Tente novamente.');
+                    showError('joinRoomError', 'Erro ao entrar na sala. Tente novamente.');
                 });
             }).catch(error => {
                 console.error("Erro ao buscar sala:", error);
-                alert('Erro ao buscar sala. Verifique o código.');
+                showError('joinRoomError', 'Erro ao buscar sala. Verifique o código.');
             });
         }
 
@@ -958,7 +1039,7 @@
             elements.roomCodeDisplay.textContent = gameState.roomId;
             
             // Gerar link compartilhável
-            const baseUrl = window.location.href.split('?')[0];
+            const baseUrl = window.location.origin + window.location.pathname;
             const roomLink = `${baseUrl}?room=${gameState.roomId}`;
             elements.roomLinkInput.value = roomLink;
         }
@@ -990,10 +1071,30 @@
         function copyRoomLink() {
             elements.roomLinkInput.select();
             document.execCommand('copy');
-            elements.copyLinkBtn.textContent = 'COPIADO!';
+            showCopiedFeedback();
+        }
+
+        function showCopiedFeedback() {
+            const feedback = document.createElement('div');
+            feedback.className = 'copied-feedback';
+            feedback.textContent = '✓ Link copiado!';
+            document.body.appendChild(feedback);
+            
             setTimeout(() => {
-                elements.copyLinkBtn.textContent = 'COPIAR';
+                feedback.remove();
             }, 2000);
+        }
+
+        function showError(elementId, message) {
+            const errorElement = document.getElementById(elementId);
+            if (!errorElement) return;
+            
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+            
+            setTimeout(() => {
+                errorElement.style.display = 'none';
+            }, 5000);
         }
 
         function startGame() {
@@ -1110,8 +1211,8 @@
             // Resetar formulários
             elements.createRoomForm.classList.add('hidden');
             elements.joinRoomForm.classList.add('hidden');
-            elements.createRoomBtn.disabled = false;
-            elements.joinRoomBtn.disabled = false;
+            elements.showCreateFormBtn.classList.remove('hidden');
+            elements.showJoinFormBtn.classList.remove('hidden');
         }
 
         function toggleSound() {
@@ -1127,8 +1228,8 @@
             if (roomId) {
                 elements.roomIdInput.value = roomId;
                 elements.joinRoomForm.classList.remove('hidden');
-                elements.createRoomBtn.disabled = true;
-                elements.joinRoomBtn.disabled = true;
+                elements.showCreateFormBtn.classList.add('hidden');
+                elements.showJoinFormBtn.classList.add('hidden');
             }
         });
     </script>
