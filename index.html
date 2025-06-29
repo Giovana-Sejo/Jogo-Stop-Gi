@@ -563,7 +563,7 @@
                 <button id="joinRoomBtn">ENTRAR EM SALA</button>
             </div>
             
-            <!-- Formulário para criar sala com código personalizado -->
+            <!-- Formulário único para criação de sala -->
             <div id="createRoomForm" class="hidden">
                 <input id="roomCodeInput" placeholder="Seu código pessoal (ex: GI123)" maxlength="6" />
                 <button id="confirmCreateBtn">CRIAR SALA</button>
@@ -808,6 +808,7 @@
         }
 
         function showCreateForm() {
+            // Esconder botões principais e mostrar formulário de criação
             elements.joinRoomForm.classList.add('hidden');
             elements.createRoomForm.classList.remove('hidden');
             elements.createRoomBtn.disabled = true;
@@ -815,6 +816,7 @@
         }
 
         function showJoinForm() {
+            // Esconder botões principais e mostrar formulário de entrada
             elements.createRoomForm.classList.add('hidden');
             elements.joinRoomForm.classList.remove('hidden');
             elements.createRoomBtn.disabled = true;
