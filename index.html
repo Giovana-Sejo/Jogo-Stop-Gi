@@ -700,17 +700,16 @@
         };
 
         // Inicialize o Firebase
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
+        const app = firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
         // Estado do Jogo
         const gameState = {
+            playerId: '',
             name: '',
             roomId: '',
             isHost: false,
-            players: [],
+            players: {},
             currentLetter: '',
             usedLetters: [],
             round: 1,
@@ -725,17 +724,6 @@
                 timePerRound: 70,
                 winningScore: 150
             },
-            giTips: [
-                "Tente pensar em palavras menos óbvias para ganhar mais pontos!",
-                "Nomes próprios valem pontos mesmo que sejam menos comuns!",
-                "A Gi analisou que palavras com 3+ letras têm maior chance de valer pontos!",
-                "Dica: Cores podem incluir tons como 'azul-marinho'!",
-                "Você sabia? Alguns animais começam com letras difíceis como X (Xaréu)!",
-                "Carros incluem marcas e modelos - seja criativo!",
-                "Filmes internacionais valem pontos mesmo que sejam pouco conhecidos!",
-                "Para 'Tenho em Casa', pense em objetos que começam com a letra!"
-            ],
-            audioContext: null,
             roomRef: null
         };
 
@@ -802,16 +790,38 @@
         elements.exitBtn.addEventListener('click', leaveRoom);
         
         // Funções do Jogo
+        function generatePlayerId() {
+            return 'player_' + Math.random().toString(36).substring(2, 15);
+        }
+
         function createRoom() {
             const name = elements.nameInput.value.trim();
-            if (!name) return;
+            if (!name) return alert('Digite seu nome!');
             
             gameState.name = name;
+            gameState.playerId = generatePlayerId();
             gameState.roomId = generateRoomId();
             gameState.isHost = true;
             
-            // Mostrar lobby
-            showLobby();
+            const roomRef = database.ref('rooms/' + gameState.roomId);
+            gameState.roomRef = roomRef;
+            
+            roomRef.set({
+                host: gameState.playerId,
+                players: {
+                    [gameState.playerId]: {
+                        name: gameState.name,
+                        score: 0
+                    }
+                },
+                status: 'waiting'
+            }).then(() => {
+                setupRoomListeners();
+                showLobby();
+            }).catch(error => {
+                console.error("Erro ao criar sala:", error);
+                alert('Erro ao criar sala. Tente novamente.');
+            });
         }
 
         function showJoinForm() {
@@ -824,14 +834,74 @@
             const name = elements.nameInput.value.trim();
             const roomId = elements.roomIdInput.value.trim().toUpperCase();
             
-            if (!name || !roomId) return;
+            if (!name) return alert('Digite seu nome!');
+            if (!roomId) return alert('Digite o código da sala!');
             
             gameState.name = name;
+            gameState.playerId = generatePlayerId();
             gameState.roomId = roomId;
             gameState.isHost = false;
             
-            // Mostrar lobby
-            showLobby();
+            const roomRef = database.ref('rooms/' + gameState.roomId);
+            gameState.roomRef = roomRef;
+            
+            roomRef.once('value').then(snapshot => {
+                if (!snapshot.exists()) {
+                    alert('Sala não encontrada!');
+                    return;
+                }
+                
+                const roomData = snapshot.val();
+                const players = roomData.players || {};
+                
+                // Verifica capacidade da sala
+                if (Object.keys(players).length >= gameState.gameSettings.maxPlayers) {
+                    alert('Sala cheia!');
+                    return;
+                }
+                
+                // Adiciona jogador
+                roomRef.child('players/' + gameState.playerId).set({
+                    name: gameState.name,
+                    score: 0
+                }).then(() => {
+                    setupRoomListeners();
+                    showLobby();
+                }).catch(error => {
+                    console.error("Erro ao entrar na sala:", error);
+                    alert('Erro ao entrar na sala. Tente novamente.');
+                });
+            }).catch(error => {
+                console.error("Erro ao buscar sala:", error);
+                alert('Erro ao buscar sala. Verifique o código.');
+            });
+        }
+
+        function setupRoomListeners() {
+            gameState.roomRef.on('value', snapshot => {
+                const roomData = snapshot.val();
+                if (!roomData) return;
+                
+                const hostId = roomData.host;
+                updatePlayerList(roomData.players, hostId);
+                elements.playerCount.textContent = Object.keys(roomData.players).length;
+                
+                // Mostra botão de iniciar apenas para o host
+                elements.startGameBtn.classList.toggle(
+                    'hidden', 
+                    !gameState.isHost || roomData.status !== 'waiting'
+                );
+                
+                elements.waitingText.classList.toggle(
+                    'hidden', 
+                    gameState.isHost || roomData.status === 'inGame'
+                );
+                
+                // Atualiza estado do jogo
+                if (roomData.status === 'inGame') {
+                    startGame();
+                }
+            });
         }
 
         function showLobby() {
@@ -843,45 +913,29 @@
             
             elements.roomCodeDisplay.textContent = gameState.roomId;
             
-            // Gerar link dinâmico
             const baseUrl = window.location.href.split('?')[0];
             const roomLink = `${baseUrl}?room=${gameState.roomId}`;
             elements.roomLinkInput.value = roomLink;
-            
-            elements.startGameBtn.classList.toggle('hidden', !gameState.isHost);
-            elements.waitingText.classList.toggle('hidden', gameState.isHost);
-            
-            // Adicionar jogadores de exemplo
-            updatePlayerList();
         }
 
-        function updatePlayerList() {
+        function updatePlayerList(players, hostId) {
             elements.playerList.innerHTML = '';
             
-            // Jogador atual
-            const player1 = document.createElement('li');
-            player1.innerHTML = `
-                <div class="player-avatar">${getInitials(gameState.name)}</div>
-                ${gameState.name}
-                ${gameState.isHost ? '<div class="player-host">HOST</div>' : ''}
-            `;
-            elements.playerList.appendChild(player1);
-            
-            // Jogadores adicionais (exemplo)
-            if (gameState.isHost) {
-                const players = ['Ana Silva', 'Carlos Santos', 'Maria Oliveira'];
-                players.forEach(player => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `
-                        <div class="player-avatar">${getInitials(player)}</div>
-                        ${player}
-                    `;
-                    elements.playerList.appendChild(li);
-                });
-                elements.playerCount.textContent = players.length + 1;
-            } else {
-                elements.playerCount.textContent = 1;
-            }
+            Object.keys(players).forEach(playerId => {
+                const player = players[playerId];
+                const isCurrentPlayer = playerId === gameState.playerId;
+                const isHost = playerId === hostId;
+                
+                const li = document.createElement('li');
+                if (isCurrentPlayer) li.classList.add('current-player');
+                
+                li.innerHTML = `
+                    <div class="player-avatar">${getInitials(player.name)}</div>
+                    ${player.name}
+                    ${isHost ? '<div class="player-host">HOST</div>' : ''}
+                `;
+                elements.playerList.appendChild(li);
+            });
         }
 
         function getInitials(name) {
@@ -898,20 +952,19 @@
         }
 
         function startGame() {
-            elements.lobbyScreen.classList.add('hidden');
-            elements.gameScreen.classList.remove('hidden');
-            elements.winnerScreen.classList.add('hidden');
+            if (!gameState.isHost) return;
             
-            // Iniciar uma nova rodada
-            startNewRound();
+            gameState.roomRef.update({
+                status: 'inGame'
+            }).then(() => {
+                elements.lobbyScreen.classList.add('hidden');
+                elements.gameScreen.classList.remove('hidden');
+                startNewRound();
+            });
         }
 
         function startNewRound() {
             if (!gameState.isHost) return;
-            
-            gameState.answersSubmitted = false;
-            elements.submitAnswersBtn.disabled = false;
-            elements.submitAnswersBtn.textContent = 'ENVIAR RESPOSTAS';
             
             // Sorteia nova letra
             const availableLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
@@ -920,20 +973,13 @@
             gameState.currentLetter = availableLetters[Math.floor(Math.random() * availableLetters.length)];
             gameState.usedLetters.push(gameState.currentLetter);
             
-            // Atualiza exibição da letra
-            updateLetterDisplay();
-            
-            // Limpa respostas
-            elements.nameAnswer.value = '';
-            elements.placeAnswer.value = '';
-            elements.animalAnswer.value = '';
-            elements.foodAnswer.value = '';
-            elements.colorAnswer.value = '';
-            elements.carAnswer.value = '';
-            elements.movieAnswer.value = '';
-            elements.itemAnswer.value = '';
-            
-            startTimer();
+            // Atualiza Firebase
+            gameState.roomRef.update({
+                currentLetter: gameState.currentLetter
+            }).then(() => {
+                updateLetterDisplay();
+                startTimer();
+            });
         }
 
         function updateLetterDisplay() {
@@ -947,7 +993,6 @@
             elements.letterMovie.textContent = gameState.currentLetter;
             elements.letterItem.textContent = gameState.currentLetter;
             
-            // Animar a roda
             document.querySelector('.letter-wheel').style.animation = 'spin 1s ease-out';
             setTimeout(() => {
                 document.querySelector('.letter-wheel').style.animation = '';
@@ -955,6 +1000,8 @@
         }
 
         function startTimer() {
+            if (!gameState.isHost) return;
+            
             gameState.timeLeft = gameState.gameSettings.timePerRound;
             updateTimerDisplay();
             
@@ -977,112 +1024,54 @@
             elements.timerText.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }
 
-        function updateScoreboard() {
-            elements.scoreBoard.innerHTML = '';
-            
-            // Adicionar placar de exemplo
-            const players = [
-                { name: gameState.name, score: 45 },
-                { name: "Ana Silva", score: 32 },
-                { name: "Carlos Santos", score: 28 },
-                { name: "Maria Oliveira", score: 19 }
-            ];
-            
-            players.sort((a, b) => b.score - a.score);
-            
-            players.forEach(player => {
-                const scoreItem = document.createElement('div');
-                scoreItem.className = `score-item ${player.name === gameState.name ? 'highlight' : ''}`;
-                scoreItem.textContent = `${player.name}: ${player.score} pts`;
-                elements.scoreBoard.appendChild(scoreItem);
-            });
-        }
-
         function submitAnswers() {
             if (gameState.answersSubmitted) return;
             
             gameState.answersSubmitted = true;
             elements.submitAnswersBtn.disabled = true;
             elements.submitAnswersBtn.textContent = '✓ Respostas Enviadas';
-            
-            // Atualizar placar
-            updateScoreboard();
         }
 
-        function endRound() {
-            if (gameState.round >= gameState.gameSettings.maxRounds) {
-                endGame();
-            } else {
-                gameState.round++;
-                elements.roundNumber.textContent = gameState.round;
-                setTimeout(startNewRound, 2000);
+        function leaveRoom() {
+            if (gameState.roomRef) {
+                // Remove jogador da sala
+                gameState.roomRef.child('players/' + gameState.playerId).remove();
+                
+                // Se host sair, deleta sala após 5s
+                if (gameState.isHost) {
+                    setTimeout(() => {
+                        gameState.roomRef.remove();
+                    }, 5000);
+                }
             }
+            
+            resetGameState();
+            showLoginScreen();
         }
 
-        function endGame() {
+        function resetGameState() {
+            gameState.roomId = '';
+            gameState.isHost = false;
+            gameState.players = {};
+            gameState.name = '';
+            clearInterval(gameState.timer);
+            elements.exitBtn.classList.add('hidden');
+        }
+
+        function showLoginScreen() {
+            elements.loginScreen.classList.remove('hidden');
+            elements.lobbyScreen.classList.add('hidden');
             elements.gameScreen.classList.add('hidden');
-            elements.winnerScreen.classList.remove('hidden');
-            
-            // Definir vencedor
-            elements.winnerName.textContent = gameState.name;
-            elements.winnerScore.textContent = "45";
-            
-            // Mostrar placar final
-            elements.finalScores.innerHTML = '';
-            
-            const players = [
-                { name: gameState.name, score: 45 },
-                { name: "Ana Silva", score: 32 },
-                { name: "Carlos Santos", score: 28 },
-                { name: "Maria Oliveira", score: 19 }
-            ];
-            
-            players.sort((a, b) => b.score - a.score).forEach(player => {
-                const li = document.createElement('li');
-                li.innerHTML = `
-                    <span>${player.name}</span>
-                    <span>${player.score} pontos</span>
-                `;
-                elements.finalScores.appendChild(li);
-            });
+            elements.winnerScreen.classList.add('hidden');
         }
 
-        function playAgain() {
-            gameState.round = 1;
-            gameState.usedLetters = [];
-            
-            elements.winnerScreen.classList.add('hidden');
-            
-            if (gameState.isHost) {
-                showLobby();
-            } else {
-                elements.lobbyScreen.classList.remove('hidden');
-            }
+        function generateRoomId() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
         }
 
         function toggleSound() {
             gameState.soundEnabled = !gameState.soundEnabled;
             elements.soundToggle.querySelector('i').textContent = gameState.soundEnabled ? '🔊' : '🔇';
-        }
-
-        function leaveRoom() {
-            elements.loginScreen.classList.remove('hidden');
-            elements.lobbyScreen.classList.add('hidden');
-            elements.gameScreen.classList.add('hidden');
-            elements.winnerScreen.classList.add('hidden');
-            elements.exitBtn.classList.add('hidden');
-            
-            // Resetar estado
-            gameState.roomId = '';
-            gameState.isHost = false;
-            gameState.players = [];
-            gameState.name = '';
-            clearInterval(gameState.timer);
-        }
-
-        // Funções Auxiliares
-        function generateRoomId() {
-            return Math.random().toString(36).substring(2, 8).toUpperCase();
         }
 
         // Inicialização
@@ -1094,10 +1083,6 @@
                 elements.roomIdInput.value = roomId;
                 showJoinForm();
             }
-            
-            // Inicializar elementos
-            updatePlayerList();
-            updateScoreboard();
         });
     </script>
 </body>
